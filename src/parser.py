@@ -103,7 +103,9 @@ def p_labeled_stmt(p):
 def p_assign_stmt(p):
     """assign_stmt : ID EQUALS expr
                    | array_ref EQUALS expr"""
-    p[0] = Assign(target=p[1], value=p[3])
+    # Normaliza ID simples para o no ID, mantendo ArrayRef quando aplicavel.
+    target = ID(name=p[1]) if isinstance(p[1], str) else p[1]
+    p[0] = Assign(target=target, value=p[3])
 
 # ─── IF-THEN-ELSE ─────────────────────────────────────────────────────────────
 
