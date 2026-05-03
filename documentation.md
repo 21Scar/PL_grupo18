@@ -105,3 +105,6 @@ estruturados de forma análoga a `tests/test_lexer.py`, verificando a estrutura
 dos nós AST produzidos para cada construção da linguagem (atribuições,
 expressões, controlo de fluxo, declarações). Os problemas conhecidos acima
 serão corrigidos antes de os testes serem escritos.
+
+
+
