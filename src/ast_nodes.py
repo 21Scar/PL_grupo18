@@ -23,7 +23,8 @@ class Program(Node):
 @dataclass
 class VarDecl(Node):
     type_name: str      # 'INTEGER', 'REAL', 'LOGICAL', etc.
-    names: list         # lista de IDs declarados
+    names: list         # lista de (nome, shape) onde shape é None para
+                        # escalares e [dim] para arrays, ex: ('NUMS', [5])
 
 # ─── Instruções ───────────────────────────────────────────────────────────────
 @dataclass

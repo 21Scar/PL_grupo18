@@ -61,12 +61,23 @@ def p_type_kw(p):
     p[0] = p[1]
 
 def p_id_list(p):
-    """id_list : id_list COMMA ID
-               | ID"""
+    """id_list : id_list COMMA id_item
+               | id_item"""
     if len(p) == 4:
         p[0] = p[1] + [p[3]]
     else:
         p[0] = [p[1]]
+
+def p_id_item_scalar(p):
+    """id_item : ID"""
+    # Escalar — shape None
+    p[0] = (p[1], None)
+
+def p_id_item_array(p):
+    """id_item : ID LPAREN INT_LIT RPAREN"""
+    # Array com uma dimensão — shape é lista com o tamanho, ex: [5]
+    # Fortran 77 suporta até 7 dimensões mas o subset do enunciado usa uma.
+    p[0] = (p[1], [p[3]])
 
 # ─── Lista de instruções ──────────────────────────────────────────────────────
 
@@ -102,10 +113,17 @@ def p_labeled_stmt(p):
 
 def p_assign_stmt(p):
     """assign_stmt : ID EQUALS expr
-                   | array_ref EQUALS expr"""
-    # Normaliza ID simples para o no ID, mantendo ArrayRef quando aplicavel.
-    target = ID(name=p[1]) if isinstance(p[1], str) else p[1]
-    p[0] = Assign(target=target, value=p[3])
+                   | ID LPAREN expr_list RPAREN EQUALS expr"""
+    if len(p) == 4:
+        # Atribuição simples: N = expr
+        p[0] = Assign(target=ID(name=p[1]), value=p[3])
+    else:
+        # Atribuição a elemento de array: NUMS(I) = expr
+        # O contexto (lado esquerdo de =) garante que é array, não função.
+        p[0] = Assign(
+            target=ArrayRef(name=p[1], indices=p[3]),
+            value=p[6]
+        )
 
 # ─── IF-THEN-ELSE ─────────────────────────────────────────────────────────────
 
@@ -230,23 +248,13 @@ def p_expr_bool(p):
     """expr : BOOL_LIT"""
     p[0] = BoolLit(value=p[1])
 
-def p_expr_array_ref(p):
-    """expr : array_ref"""
-    p[0] = p[1]
-
-def p_expr_func_call(p):
+def p_expr_call_or_array(p):
     """expr : ID LPAREN expr_list RPAREN"""
+    # Gera sempre FuncCall. A análise semântica reescreve para ArrayRef
+    # quando o nome constar da tabela de símbolos como array declarado.
+    # Isto elimina o conflito reduce/reduce que existia entre p_expr_func_call
+    # e p_array_ref na versão anterior.
     p[0] = FuncCall(name=p[1], args=p[3])
-
-def p_array_ref(p):
-    """array_ref : ID LPAREN expr_list RPAREN"""
-    # Ambíguo com FuncCall — resolvido na análise semântica
-    p[0] = ArrayRef(name=p[1], indices=p[3])
-
-"""
-Temos duas regras com o mesmo padrão aqui-> problema shift/reduce. 
-A solução é gerar FuncCall para tudo e deixar a análise semântica distinguir 
-entre chamadas de função e referências a arrays consultando a tabela de símbolos."""
 # ─── Produção vazia ───────────────────────────────────────────────────────────
 
 def p_empty(p):
@@ -274,7 +282,7 @@ def build_parser(debug=False):
 # ─── Ponto de entrada para teste rápido ──────────────────────────────────────
 
 if __name__ == '__main__':
-    from .lexer import build_lexer
+    from lexer import build_lexer
     _code = """\
 PROGRAM FATORIAL
   INTEGER N, I, FAT

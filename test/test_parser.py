@@ -11,6 +11,8 @@ Nota importante:
 		esses pontos para tornar o problema visivel sem quebrar a suite inteira.
 """
 
+import ast
+import code
 import os
 import sys
 import pytest
@@ -80,7 +82,7 @@ END
 				decl = ast.decls[0]
 				assert isinstance(decl, VarDecl)
 				assert decl.type_name == "INTEGER"
-				assert decl.names == ["N", "I"]
+				assert decl.names == [("N", None), ("I", None)]
 
 
 # ─── 3. Atribuicao ──────────────────────────────────────────────────────────
@@ -120,6 +122,18 @@ END
 				assert stmt.target.name == "A"
 				assert len(stmt.target.indices) == 1
 				assert isinstance(stmt.target.indices[0], IntLit)
+    
+		def test_array_decl(self):
+			code = """\
+PROGRAM P
+    INTEGER NUMS(5)
+END
+"""
+			ast = parse(code)
+			decl = ast.decls[0]
+			assert isinstance(decl, VarDecl)
+			assert decl.type_name == "INTEGER"
+			assert decl.names == [("NUMS", [5])]
 
 
 # ─── 4. Expressoes ──────────────────────────────────────────────────────────
@@ -395,7 +409,7 @@ END
 				assert len(stmt.body) == 1
 				assert isinstance(stmt.body[0], Assign)
 
-		@pytest.mark.xfail(reason="Ambiguidade ID(args): FuncCall vs ArrayRef.")
+		
 		def test_func_call_in_expr(self):
 				code = """\
 PROGRAM P
