@@ -119,4 +119,27 @@ expressões, controlo de fluxo, declarações). Os problemas conhecidos acima
 serão corrigidos antes de os testes serem escritos.
 
 
+### Validação de exemplos na EWVM
+
+Foram incluídos os ficheiros de exemplo em Fortran e os respetivos ficheiros VM, conforme exigido no enunciado:
+
+- `examples/hello.f` -> `examples/hello.vm`
+- `examples/factorial.f` -> `examples/factorial.vm`
+- `examples/somaarr.f` -> `examples/somaarr.vm`
+- `examples/prime.f` -> `examples/prime.vm`
+- `examples/fib.f` -> `examples/fib.vm`
+
+Compilação dos exemplos:
+
+- `python scripts/generate_examples.py`
+
+Validação manual executada na EWVM:
+
+- `hello.vm` imprime `Hello, World!`
+- `factorial.vm` imprime `120`
+- `somaarr.vm` imprime `15`
+- `prime.vm` imprime `PRIME` (para `N=7`)
+- `fib.vm` imprime a sequência `0 1 1 2 3 5` (para `N=6`)
+
+
 

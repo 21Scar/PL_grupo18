@@ -1,0 +1,43 @@
+start
+pushi 7
+storel 1
+pushi 1
+storel 3
+pushi 2
+storel 2
+IL1:
+pushl 2
+pushl 1
+pushi 1
+sub
+infeq
+jz IL2
+pushl 1
+pushl 2
+mod
+pushi 0
+equal
+jz IL3
+pushi 0
+storel 3
+jump IL4
+IL3:
+IL4:
+pushl 2
+pushi 1
+add
+storel 2
+jump IL1
+IL2:
+pushl 3
+jz IL5
+pushs "PRIME"
+writes
+writeln
+jump IL6
+IL5:
+pushs "COMPOSITE"
+writes
+writeln
+IL6:
+stop

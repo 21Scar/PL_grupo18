@@ -363,6 +363,20 @@ A estratégia de testes segue uma abordagem *unit-first*: cada fase é testada d
 
 **Estado da suite completa**: 125 passed, 0 falhas, 1 xfail (esperado).
 
+### 7.4 Validação manual na EWVM
+
+Para além dos testes automatizados, os ficheiros VM gerados foram executados manualmente na EWVM para validação de integração fim-a-fim (Fortran -> AST -> semântica -> VM):
+
+| Exemplo | Ficheiro VM | Output esperado | Estado |
+|---------|-------------|-----------------|--------|
+| HELLO | `examples/hello.vm` | `Hello, World!` | OK |
+| FACTORIAL | `examples/factorial.vm` | `120` | OK |
+| SOMAARR | `examples/somaarr.vm` | `15` | OK |
+| PRIME (N=7) | `examples/prime.vm` | `PRIME` | OK |
+| FIB (N=6) | `examples/fib.vm` | `0 1 1 2 3 5` | OK |
+
+Esta validação confirma que os exemplos obrigatórios foram incluídos e compilados para código EWVM executável.
+
 ---
 
 ## 8. Trabalho Futuro

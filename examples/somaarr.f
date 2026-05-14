@@ -1,0 +1,13 @@
+PROGRAM SOMAARR
+  INTEGER NUMS(5), I, S
+  NUMS(1) = 1
+  NUMS(2) = 2
+  NUMS(3) = 3
+  NUMS(4) = 4
+  NUMS(5) = 5
+  S = 0
+  DO 10 I = 1, 5
+    S = S + NUMS(I)
+10 CONTINUE
+  PRINT *, S
+END

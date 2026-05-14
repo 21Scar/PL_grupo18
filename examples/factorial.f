@@ -1,0 +1,9 @@
+PROGRAM FACTORIAL
+  INTEGER N, I, FAT
+  N = 5
+  FAT = 1
+  DO 10 I = 1, N
+    FAT = FAT * I
+10 CONTINUE
+  PRINT *, FAT
+END

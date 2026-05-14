@@ -1,0 +1,26 @@
+start
+pushi 5
+storel 1
+pushi 1
+storel 3
+pushi 1
+storel 2
+IL1:
+pushl 2
+pushl 1
+infeq
+jz IL2
+pushl 3
+pushl 2
+mul
+storel 3
+pushl 2
+pushi 1
+add
+storel 2
+jump IL1
+IL2:
+pushl 3
+writei
+writeln
+stop

@@ -1,0 +1,81 @@
+start
+pushi 1
+pushfp
+pushi 1
+padd
+pushi 1
+pushi 1
+sub
+padd
+swap
+store 0
+pushi 2
+pushfp
+pushi 1
+padd
+pushi 2
+pushi 1
+sub
+padd
+swap
+store 0
+pushi 3
+pushfp
+pushi 1
+padd
+pushi 3
+pushi 1
+sub
+padd
+swap
+store 0
+pushi 4
+pushfp
+pushi 1
+padd
+pushi 4
+pushi 1
+sub
+padd
+swap
+store 0
+pushi 5
+pushfp
+pushi 1
+padd
+pushi 5
+pushi 1
+sub
+padd
+swap
+store 0
+pushi 0
+storel 7
+pushi 1
+storel 6
+IL1:
+pushl 6
+pushi 5
+infeq
+jz IL2
+pushl 7
+pushfp
+pushi 1
+padd
+pushl 6
+pushi 1
+sub
+padd
+load 0
+add
+storel 7
+pushl 6
+pushi 1
+add
+storel 6
+jump IL1
+IL2:
+pushl 7
+writei
+writeln
+stop

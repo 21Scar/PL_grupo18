@@ -89,17 +89,43 @@ class CodeGen:
 
     def _emit(self, instr: str) -> None:
         """Emite uma instrução."""
-        self.code.append(instr)
+        # Labels são emitidos como estão (ex.: IL1: ou L10:)
+        if instr.endswith(':'):
+            self.code.append(instr)
+            return
+
+        # Para instruções, apenas o opcode é normalizado para lowercase.
+        # Isto evita alterar operandos (ex.: strings em PUSHS).
+        parts = instr.split(' ', 1)
+        opcode = parts[0].lower()
+        if len(parts) == 1:
+            self.code.append(opcode)
+        else:
+            self.code.append(f"{opcode} {parts[1]}")
 
     def _new_label(self) -> str:
         """Gera um novo label único."""
         self.label_counter += 1
-        # Prefix interno para evitar colisão com labels Fortran (L10, L20, ...)
-        return f"__L{self.label_counter}"
+        # Prefixo começando por letra para evitar colisão com labels Fortran
+        # e ser aceite pelo parser da VM (ex.: IL1, IL2, ...)
+        return f"IL{self.label_counter}"
 
     def _emit_label(self, label: str) -> None:
         """Emite um label."""
         self._emit(f"{label}:")
+
+    def _emit_array_address(self, var_info: VariableInfo, index_expr: Node) -> None:
+        """Empilha o endereço de um elemento de array local (1D, índice 1-based).
+
+        Endereço = FP + offset_base + (index - 1)
+        """
+        self._emit("PUSHFP")
+        self._emit(f"PUSHI {var_info.offset}")
+        self._emit("PADD")
+        self._generate_expr(index_expr)
+        self._emit("PUSHI 1")
+        self._emit("SUB")
+        self._emit("PADD")
 
     def _type_of(self, expr: Node) -> str:
         """Inferir tipo de expressão: 'INTEGER', 'REAL', 'CHARACTER', 'LOGICAL'.
@@ -197,12 +223,10 @@ class CodeGen:
             var_info = self.variables.get(assign.target.name)
             if var_info is None:
                 raise ValueError(f"Array não declarado: {assign.target.name}")
-            # Calcular índice
-            self._generate_expr(assign.target.indices[0])
-            # Calcular endereço: base + índice
-            self._emit(f"PUSHL {var_info.offset}")
-            self._emit("PADD")
-            # Agora temos [valor, endereço] na pilha — fazer STORE
+            # Calcular endereço do elemento alvo
+            self._emit_array_address(var_info, assign.target.indices[0])
+            # STORE espera [endereço, valor] (topo = valor)
+            self._emit("SWAP")
             self._emit("STORE 0")
         else:
             raise ValueError(f"Target inválido: {type(assign.target)}")
@@ -214,24 +238,21 @@ class CodeGen:
         elif isinstance(expr, RealLit):
             self._emit(f"PUSHF {expr.value}")
         elif isinstance(expr, StrLit):
-            self._emit(f"PUSHS '{expr.value}'")
+            escaped = expr.value.replace('\\', '\\\\').replace('"', '\\"')
+            self._emit(f'PUSHS "{escaped}"')
         elif isinstance(expr, BoolLit):
             self._emit(f"PUSHI {1 if expr.value else 0}")
         elif isinstance(expr, ID):
             var_info = self.variables.get(expr.name)
             if var_info is None:
                 raise ValueError(f"Variável não declarada: {expr.name}")
-            # Carregar valor da variável
+            # PUSHL já empilha o valor da variável local
             self._emit(f"PUSHL {var_info.offset}")
-            self._emit("LOAD 0")
         elif isinstance(expr, ArrayRef):
             var_info = self.variables.get(expr.name)
             if var_info is None:
                 raise ValueError(f"Array não declarado: {expr.name}")
-            # Calcular índice
-            self._generate_expr(expr.indices[0])
-            self._emit(f"PUSHL {var_info.offset}")
-            self._emit("PADD")
+            self._emit_array_address(var_info, expr.indices[0])
             self._emit("LOAD 0")
         elif isinstance(expr, BinOp):
             self._generate_binop(expr)
@@ -340,7 +361,6 @@ class CodeGen:
 
         # Verificar condição: var <= stop (INFEQ)
         self._emit(f"PUSHL {var_info.offset}")
-        self._emit("LOAD 0")
         self._generate_expr(do_loop.stop)
         self._emit("INFEQ")
         self._emit(f"JZ {end_label}")
@@ -352,7 +372,6 @@ class CodeGen:
         # Incrementar variável de controlo: var = var + step (ou 1 se step é None)
         step = do_loop.step if do_loop.step is not None else IntLit(value=1)
         self._emit(f"PUSHL {var_info.offset}")
-        self._emit("LOAD 0")
         self._generate_expr(step)
         self._emit("ADD")
         self._emit(f"STOREL {var_info.offset}")
@@ -403,9 +422,8 @@ class CodeGen:
                 if var_info is None:
                     raise ValueError(f"Array não declarado: {item.name}")
                 # Calcular índice e endereço, depois armazenar
-                self._generate_expr(item.indices[0])
-                self._emit(f"PUSHL {var_info.offset}")
-                self._emit("PADD")
+                self._emit_array_address(var_info, item.indices[0])
+                self._emit("SWAP")
                 self._emit("STORE 0")
             else:
                 raise ValueError(f"Item de READ não suportado: {type(item)}")
