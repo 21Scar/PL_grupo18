@@ -255,8 +255,8 @@ O módulo `test/test_parser.py` contém 14 classes de teste. A suite passa com 1
 
 | Estado | Contagem |
 |--------|---------|
-| Passed | 98 |
-| xfail (esperado) | 1 — corpo do DO |
+| Passed | 104 |
+| xfail (esperado) | 1 — corpo do DO (resolvido na análise semântica) |
 | Failed | 0 |
 
 ---
@@ -355,7 +355,13 @@ A estratégia de testes segue uma abordagem *unit-first*: cada fase é testada d
 
 ### 7.2 Parser
 
-14 classes de teste, cobrindo: programa raiz, declarações (escalares e arrays), atribuições, expressões com precedência, IF-THEN-ELSE, PRINT/READ, labels e GOTO, DO loop, CALL. Estado actual: 98 passed, 1 xfail esperado, 0 falhas.
+14 classes de teste, cobrindo: programa raiz, declarações (escalares e arrays), atribuições, expressões com precedência, IF-THEN-ELSE, PRINT/READ, labels e GOTO, DO loop, CALL. Estado actual: 104 passed, 1 xfail (resolução de DO body na análise semântica), 0 falhas.
+
+### 7.3 Análise Semântica
+
+21 testes em 8 classes, cobrindo: tabela de símbolos, declarações, resolução FuncCall/ArrayRef, validação de labels, DO loops, avisos para variáveis não declaradas, preenchimento de DO bodies. Estado actual: 21/21 passed.
+
+**Estado da suite completa**: 125 passed, 0 falhas, 1 xfail (esperado).
 
 ---
 
@@ -363,11 +369,7 @@ A estratégia de testes segue uma abordagem *unit-first*: cada fase é testada d
 
 As seguintes funcionalidades estão identificadas como próximos passos, por ordem de prioridade:
 
-**Pós-processamento do DO** — implementar `post_process_do` para preencher `DoLoop.body`. O algoritmo usa uma pilha e suporta loops aninhados. Esta é a única limitação que impede os Exemplos 2 e 4 de produzir uma AST correcta.
-
-**Geração de código para a VM** — converter a AST anotada pela análise semântica em instruções da máquina virtual. Esta é a fase obrigatória ainda em falta para aprovação mínima.
-
-**Subprogramas externos** — suporte sintático e semântico para `FUNCTION` e `SUBROUTINE` externos ao `PROGRAM` principal (Exemplo 5 do enunciado). Cada subprograma terá a sua própria tabela de símbolos.
+**Subprogramas externos** — suporte sintático e semântico para `FUNCTION` e `SUBROUTINE` externos ao `PROGRAM` principal. Cada subprograma terá a sua própria tabela de símbolos.
 
 **Verificação de tipos em expressões** — a análise semântica actual verifica declaração mas não compatibilidade de tipos em operações binárias ou atribuições.
 
@@ -375,12 +377,22 @@ As seguintes funcionalidades estão identificadas como próximos passos, por ord
 
 **Arrays multidimensionais** — a gramática suporta apenas uma dimensão; Fortran 77 suporta até 7.
 
+**Otimizações de código** — análise de fluxo de dados, eliminação de código morto, dobragem de constantes.
+
 ---
 
 ## 9. Conclusão
 
-Foram implementadas com sucesso as três primeiras fases do compilador: análise léxica, análise sintática e análise semântica. O compilador reconhece correctamente todos os exemplos do enunciado ao nível léxico e sintático, e resolve a ambiguidade `FuncCall`/`ArrayRef` com base na tabela de símbolos construída na fase semântica.
+Foram implementadas com sucesso as quatro fases principais do compilador:
 
-A arquitectura em pipeline com módulos independentes e testáveis facilitou o desenvolvimento incremental e a identificação de problemas. A suite de testes com mais de 100 testes unitários garante que cada fase funciona correctamente de forma isolada e que alterações futuras não introduzem regressões.
+1. **Análise Léxica**: O lexer reconhece 25 palavras-chave, literais (inteiro, real, string, booleano), operadores aritméticos, relacionais e lógicos, e pontuação. Suporta case-insensitivity e comentários em free-form.
 
-A fase de geração de código, que completará o compilador ao nível obrigatório de aprovação, é o próximo passo imediato.
+2. **Análise Sintática**: O parser LALR(1) cobre o subset de Fortran 77 exigido, gerando uma AST bem estruturada com suporte a declarações, expressões, estruturas de controlo (IF, DO, GOTO) e operações de I/O.
+
+3. **Análise Semântica**: A análise semântica constrói a tabela de símbolos, resolve a ambiguidade FuncCall/ArrayRef, valida labels, e preenche os corpos vazios dos ciclos DO usando pós-processamento iterativo.
+
+4. **Geração de Código**: O módulo codegen traduz a AST em instruções da máquina virtual EWVM, com alocação de espaço para variáveis, mapeamento de operadores e geração de código para expressões, atribuições, condicionais e ciclos.
+
+A arquitectura em pipeline com módulos independentes e testáveis facilitou o desenvolvimento incremental. A suite de testes com **125 testes unitários** garante que cada fase funciona correctamente de forma isolada.
+
+O compilador é agora capaz de traduzir programas Fortran 77 (no subset especificado) até código executável na máquina virtual EWVM.

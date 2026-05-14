@@ -193,6 +193,12 @@ class SemanticAnalyser(Visitor):
         for decl in node.decls:
             self._process_decl(decl)
 
+        # Pré-processamento: preencher corpos vazios dos DO loops
+        # O parser não consegue agrupar dinamicamente instruções entre DO e CONTINUE,
+        # pelo que esta passagem iterativa encontra cada DoLoop e agrupa as
+        # instruções até ao CONTINUE correspondente.
+        node.body = self._fill_do_bodies(node.body)
+
         # Recolher todos os labels definidos no programa (para validar GOTOs)
         self._collect_labels(node.body)
 
@@ -209,6 +215,73 @@ class SemanticAnalyser(Visitor):
         return node
 
     # ── Declarações ───────────────────────────────────────────────────────────
+
+    def _fill_do_bodies(self, stmts: list) -> list:
+        """
+        Pós-processamento para agrupar instruções entre DO e CONTINUE.
+
+        O parser gera DoLoop com body=[], porque LALR(1) não consegue agrupar
+        dinamicamente. Esta função percorre a lista plana de instruções e
+        para cada DoLoop com label X, encontra o CONTINUE com label X e move
+        as instruções entre eles para DoLoop.body.
+
+        Processa recursivamente dentro de IfThen e DoLoop já preenchidos.
+        """
+        result = []
+        i = 0
+        while i < len(stmts):
+            stmt = stmts[i]
+
+            # Recursivamente processar corpos de IF e DO aninhados
+            if isinstance(stmt, IfThen):
+                stmt.then_body = self._fill_do_bodies(stmt.then_body)
+                stmt.else_body = self._fill_do_bodies(stmt.else_body)
+                result.append(stmt)
+                i += 1
+                continue
+
+            if isinstance(stmt, DoLoop) and stmt.body == []:
+                # DoLoop com body vazio — procurar o CONTINUE correspondente
+                target_label = stmt.label
+                body_stmts = []
+                j = i + 1
+
+                # Recolher instruções até encontrar um LabeledStmt com label == target_label
+                while j < len(stmts):
+                    next_stmt = stmts[j]
+                    if isinstance(next_stmt, LabeledStmt) and next_stmt.label == target_label:
+                        # Encontrámos o CONTINUE — paramos
+                        stmt.body = body_stmts
+                        # Recursivamente processar os corpos aninhados dentro do DO
+                        stmt.body = self._fill_do_bodies(stmt.body)
+                        result.append(stmt)
+                        # Saltar até ao CONTINUE
+                        i = j + 1
+                        break
+                    else:
+                        body_stmts.append(next_stmt)
+                        j += 1
+                else:
+                    # Não encontrámos CONTINUE correspondente — deixar DoLoop como estava
+                    # e registar um aviso (isto pode ser um erro do programa Fortran)
+                    self.symbol_table.warnings.append(
+                        f"Aviso: DoLoop com label {target_label} não tem CONTINUE correspondente."
+                    )
+                    result.append(stmt)
+                    i += 1
+                continue
+
+            # Recursivamente processar corpos de DO já preenchidos
+            if isinstance(stmt, DoLoop) and stmt.body != []:
+                stmt.body = self._fill_do_bodies(stmt.body)
+                result.append(stmt)
+                i += 1
+                continue
+
+            result.append(stmt)
+            i += 1
+
+        return result
 
     def _process_decl(self, decl: VarDecl) -> None:
         """

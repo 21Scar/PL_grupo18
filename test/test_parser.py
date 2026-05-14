@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from src.lexer import build_lexer
 from src.parser import build_parser
+from src.semantic import SemanticAnalyser
 from src.ast_nodes import (
 		Program, VarDecl, Assign, DoLoop, IfThen, GotoStmt, PrintStmt, ReadStmt,
 		LabeledStmt, Continue, StopStmt, ReturnStmt, CallStmt,
@@ -41,6 +42,14 @@ def parse(source: str):
 		parser = build_parser()
 		lexer = build_lexer()
 		return parser.parse(source, lexer=lexer)
+
+def parse_with_semantic(source: str):
+		"""
+		Faz parse e aplica análise semântica (incluindo preenchimento de DO bodies).
+		"""
+		ast = parse(source)
+		analyser = SemanticAnalyser()
+		return analyser.analyse(ast)
 
 
 # ─── 1. Programa base ───────────────────────────────────────────────────────
@@ -394,8 +403,13 @@ class TestKnownLimitations:
 		para que a suite passe, mas continuam a evidenciar o problema.
 		"""
 
-		@pytest.mark.xfail(reason="O parser ainda nao recolhe o corpo do DO.")
+		@pytest.mark.xfail(reason="Parser LALR(1) não consegue agrupar DO bodies dinamicamente — resolvido na análise semântica.")
 		def test_do_loop_body_collected(self):
+				"""
+				O parser não consegue agrupar instruções entre DO e CONTINUE porque
+				é uma construção context-sensitive. Isto é resolvido na fase de
+				análise semântica, com a função _fill_do_bodies.
+				"""
 				code = """\
 PROGRAM P
 	DO 10 I = 1, N
@@ -419,3 +433,70 @@ END
 				ast = parse(code)
 				value = ast.body[0].value
 				assert isinstance(value, FuncCall)
+
+
+# ─── 11. Testes de Análise Semântica ────────────────────────────────────────
+
+class TestSemanticAnalysis:
+		"""
+		Testes que verificam a análise semântica, incluindo:
+		- Preenchimento dos corpos dos DO loops
+		- Resolução de ambiguidade FuncCall vs ArrayRef
+		- Validação de símbolos
+		"""
+
+		def test_do_loop_body_filled_by_semantic(self):
+				"""
+				Após análise semântica, o corpo do DO deve estar preenchido com as
+				instruções entre DO e CONTINUE.
+				"""
+				code = """\
+PROGRAM P
+	INTEGER N
+	DO 10 I = 1, N
+		N = N + 1
+	10 CONTINUE
+END
+"""
+				ast = parse_with_semantic(code)
+				stmt = ast.body[0]
+				assert isinstance(stmt, DoLoop)
+				assert len(stmt.body) == 1
+				assert isinstance(stmt.body[0], Assign)
+
+		def test_do_loop_body_multiple_stmts(self):
+				"""
+				Validar que múltiplas instruções no corpo do DO são preservadas.
+				"""
+				code = """\
+PROGRAM P
+	INTEGER I, N
+	DO 10 I = 1, N
+		N = N + 1
+		N = N + 2
+	10 CONTINUE
+END
+"""
+				ast = parse_with_semantic(code)
+				stmt = ast.body[0]
+				assert isinstance(stmt, DoLoop)
+				assert len(stmt.body) == 2
+				assert all(isinstance(s, Assign) for s in stmt.body)
+
+		def test_func_call_becomes_array_ref(self):
+				"""
+				Após análise semântica, FuncCall para nomes declarados como arrays
+				devem ser reescritos como ArrayRef.
+				"""
+				code = """\
+PROGRAM P
+	INTEGER NUMS(5), I
+	I = NUMS(1)
+END
+"""
+				ast = parse_with_semantic(code)
+				assign = ast.body[0]
+				assert isinstance(assign, Assign)
+				# O valor deve ser ArrayRef, não FuncCall
+				assert isinstance(assign.value, ArrayRef)
+				assert assign.value.name == "NUMS"

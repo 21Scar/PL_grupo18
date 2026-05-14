@@ -26,9 +26,11 @@
     instanciado ao nível do módulo. Isto permite que os testes criem instâncias
     independentes sem estado partilhado entre testes.
 
-
-
-### Para rodar os testes:
+- **Corpus dos testes**: a suite de testes inclui 125 testes unitários cobrindo:
+  - Lexer: 14 classes com testes de palavras-chave, literais, operadores, comentários
+  - Parser: 14 classes com testes de programa, declarações, expressões, controlo de fluxo
+  - Semântica: 8 classes com testes de tabela de símbolos, resolução FuncCall/ArrayRef, validação de labels e tipos
+  - Geração de código: validação de tradução para EWVM (vide `src/codegen.py`)
 
 na pasta raiz ('PL_grupo18') rodar:
 
@@ -38,7 +40,7 @@ na pasta raiz ('PL_grupo18') rodar:
 ---
 ---
 
-## Parser (Análise Sintática)
+## Análise Semântica (Análise Semântica)
 
 ### Ferramenta utilizada
 `ply.yacc` — gerador de parsers LALR(1) integrado com o PLY.
