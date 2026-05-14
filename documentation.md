@@ -101,6 +101,16 @@ A AST é composta por nós Python definidos em `src/ast_nodes.py` usando
   como indicador de formato livre antes de tentar reduzi-lo como operador.
   **Localização**: `src/parser.py`, funções `p_print_stmt` e `p_read_stmt`.
 
+
+### Limitações documentadas
+
+Registamos as seguintes limitações que permanecem na implementação actual; foram consideradas aceitáveis para a entrega mínima do projecto e estão documentadas para futura evolução:
+
+- **Subprogramas no codegen não implementados**: o suporte sintáctico a `CALL` existe, mas `src/codegen.py` lanza `NotImplementedError` para chamadas a subrotinas/funções porque ainda não implementámos o modelo de frames e calling convention. O enunciado trata subprogramas como valorização opcional.
+- **Arrays apenas 1D**: a implementação de arrays suporta apenas uma dimensão (declarações `ID(N)`). Multidimensionalidade fica para uma fase posterior.
+- **Verificação de tipos parcial**: a análise semântica valida declarações e resolve ambiguidade `FuncCall`/`ArrayRef`, mas a verificação completa de compatibilidade de tipos em expressões binárias não está totalmente implementada (actualmente há heurísticas e avisos em vez de erros em alguns casos).
+
+
 ### Testes
 Os testes do parser estão por implementar (`tests/test_parser.py`). Serão
 estruturados de forma análoga a `tests/test_lexer.py`, verificando a estrutura

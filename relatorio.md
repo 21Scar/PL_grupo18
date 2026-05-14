@@ -396,3 +396,13 @@ Foram implementadas com sucesso as quatro fases principais do compilador:
 A arquitectura em pipeline com módulos independentes e testáveis facilitou o desenvolvimento incremental. A suite de testes com **125 testes unitários** garante que cada fase funciona correctamente de forma isolada.
 
 O compilador é agora capaz de traduzir programas Fortran 77 (no subset especificado) até código executável na máquina virtual EWVM.
+
+---
+
+## Limitações documentadas
+
+Estas limitações estão registadas explicitamente no relatório e no código; são aceitáveis para a entrega mínima do trabalho, e podem ser alvo de evolução futura:
+
+- **Subprogramas no codegen não implementados**: as chamadas a subrotinas e funções (`CALL`) são suportadas sintacticamente, mas o gerador de código (`src/codegen.py`) lança `NotImplementedError` para `CALL` porque a implementação de subprogramas requer um modelo de frames e calling convention que fica fora do escopo mínimo. O enunciado considera `CALL` como valorização, pelo que não é obrigatório para a nota máxima.
+- **Arrays unidimensionais apenas**: a implementação actual suporta apenas arrays de uma dimensão (declarações `ID(N)`). O enunciado de trabalho utiliza apenas 1D em exemplos, pelo que esta limitação é aceitável; suportar multi-dimensões é trabalho futuro.
+- **Verificação de tipos parcial em expressões**: a análise semântica constrói a tabela de símbolos e valida declarações, mas não efectua verificação completa de compatibilidade de tipos em todas as expressões binárias (no momento emitem-se avisos em vez de erros para alguns casos). Isto foi uma escolha de projecto para priorizar cobertura sintáctica e geração de código funcional; importa evoluir a análise para tornar incompatibilidades em erros explícitos.
